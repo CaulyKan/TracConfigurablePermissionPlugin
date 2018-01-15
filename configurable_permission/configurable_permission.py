@@ -15,7 +15,7 @@ class ConfigurablePermissionPolicy(Component):
 
     def get_permission_actions(self):
         result = []
-        for opt_name, opt_value in self.config.options('configuratable-permission'):
+        for opt_name, opt_value in self.config.options('configurable-permission'):
             if opt_value == 'enabled':
                 result.append(opt_name.upper())
         return result
@@ -81,7 +81,7 @@ class ConfigurablePermissionPolicy(Component):
         wiki_perm = []
         ticket_perm = []
 
-        for opt_name, opt_value in self.config.options('configuratable-permission-rules'):
+        for opt_name, opt_value in self.config.options('configurable-permission-rules'):
             values = map(lambda x: x.strip(), opt_value.split(','))
             if len(values) != 5:
                 self.log.warn('ConfigurablePermissionPolicy: invalid syntax for rule "' + opt_name + '", ignore')
