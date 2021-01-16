@@ -42,11 +42,10 @@ class ConfigurablePermissionPolicy(Component):
                         except QuerySyntaxError as e:
                             raise TracError(e)
                         try:
-                            tickets = query.execute()
+                            ticketsCount = query.count(authname=username)
                         except QueryValueError as e:
                             raise TracError(e)
-                        if len(tickets) > 0:
-                            flag = True
+                        flag = ticketsCount > 0
 
                     if flag:
                         return self._should_allow(perm, user_perm)
