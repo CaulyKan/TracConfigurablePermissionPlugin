@@ -7,6 +7,7 @@ from trac.util.compat import set
 from trac.web.chrome import Chrome
 from trac.ticket.query import Query, QuerySyntaxError, QueryValueError
 
+
 class ConfigurablePermissionPolicy(Component):
     implements(IPermissionRequestor, IPermissionPolicy)
 
@@ -21,12 +22,12 @@ class ConfigurablePermissionPolicy(Component):
         return result
 
     def check_permission(self, action, username, resource, user_perm):
-        
+
         result = None
-        
+
         if resource is None:
             return None
-        
+
         elif resource.realm == 'ticket':
             for perm in self.ticket_perm:
                 if (perm.action == action or perm.action == '*' or perm.action == '') \
@@ -36,7 +37,8 @@ class ConfigurablePermissionPolicy(Component):
                     if perm.rule == '' or perm.rule == '*':
                         flag = True
                     else:
-                        query_string = 'id=' + str(resource.id) + '&' + perm.rule
+                        query_string = 'id=' + \
+                            str(resource.id) + '&' + perm.rule
                         try:
                             query = Query.from_string(self.env, query_string)
                         except QuerySyntaxError as e:
@@ -48,15 +50,26 @@ class ConfigurablePermissionPolicy(Component):
                         flag = ticketsCount > 0
 
                     if flag:
-                        return self._should_allow(perm, user_perm)
+                        result = self._combine_result(
+                            result, self._should_allow(perm, user_perm))
 
         elif resource.realm == 'wiki':
             for perm in self.wiki_perm:
                 if perm.action == action or perm.action == '*' or perm.action == '':
                     if perm.wiki_name == '' or perm.wiki_name == '*' or perm.wiki_name == resource.id:
-                        return self._should_allow(perm, user_perm)
+                        result = self._combine_result(
+                            result, self._should_allow(perm, user_perm))
 
         return result
+
+    def _combine_result(self, result1, result2):
+        if result2 is not None:
+            if result1:
+                return result1 and result2
+            else:
+                return result1 or result2
+        else:
+            return result1
 
     def _should_allow(self, perm, user_perm):
         if perm.permission == '' or perm.permission == '*' or self._has_permission_simple(user_perm.username, perm.permission):
@@ -83,17 +96,22 @@ class ConfigurablePermissionPolicy(Component):
         for opt_name, opt_value in self.config.options('configurable-permission-rules'):
             values = map(lambda x: x.strip(), opt_value.split(','))
             if len(values) != 5:
-                self.log.warn('ConfigurablePermissionPolicy: invalid syntax for rule "' + opt_name + '", ignore')
+                self.log.warn(
+                    'ConfigurablePermissionPolicy: invalid syntax for rule "' + opt_name + '", ignore')
                 continue
             if not values[4].lower() in ['allow', 'allow-only', 'deny', 'pass', 'pass-only']:
-                self.log.warn('ConfigurablePermissionPolicy: invalid result for rule "' + opt_name + '", default to pass')
+                self.log.warn(
+                    'ConfigurablePermissionPolicy: invalid result for rule "' + opt_name + '", default to pass')
                 values[4] = 'pass'
             if values[0] == 'ticket':
-                ticket_perm.append(ConfigurablePermissionPolicy.ConfigurableTicketPermission(*values))
+                ticket_perm.append(
+                    ConfigurablePermissionPolicy.ConfigurableTicketPermission(*values))
             elif values[0] == 'wiki':
-                wiki_perm.append(ConfigurablePermissionPolicy.ConfigurableWikiPermission(*values))
+                wiki_perm.append(
+                    ConfigurablePermissionPolicy.ConfigurableWikiPermission(*values))
             else:
-                self.log.warn('ConfigurablePermissionPolicy: not supported type for rule "' + opt_name + '", default to pass')
+                self.log.warn(
+                    'ConfigurablePermissionPolicy: not supported type for rule "' + opt_name + '", default to pass')
 
         return wiki_perm, ticket_perm
 
@@ -112,5 +130,3 @@ class ConfigurablePermissionPolicy(Component):
             self.permission = permission
             self.action = action
             self.result = result.lower()
-
-            
